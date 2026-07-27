@@ -3,40 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>かかし訓練クリッカー</title>
+    <title>かかし訓練クリッカー - スキルツリー版</title>
     <style>
-        /* 全体のデザイン調整（スマホ向け） */
         body {
             margin: 0;
-            padding: 0;
+            padding: 20px 0;
             background-color: #228B22; /* 草原の緑 */
             font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
             color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 100vh;
             text-align: center;
-            /* スマホで連打したときに文字が選択されたり画面がズームしたりするのを防ぐ */
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
         }
 
-        /* 獲得ポイントの表示 */
+        /* 獲得ポイント */
         #score-display {
             font-size: 2rem;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
-        /* 訓練用かかし（ボタン） */
+        /* 訓練用かかし */
         #kakashi {
-            width: 160px;
-            height: 160px;
-            background-color: #8B4513; /* 木の茶色 */
+            width: 140px;
+            height: 140px;
+            background-color: #8B4513;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
@@ -45,78 +43,108 @@
             box-shadow: 0 8px 16px rgba(0,0,0,0.3);
             cursor: pointer;
             transition: transform 0.05s;
-            margin-bottom: 40px;
-            -webkit-tap-highlight-color: transparent; /* タップ時の青い影を消す */
+            margin-bottom: 25px;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* かかしをタップしたときのアニメーション */
-        #kakashi:active {
-            transform: scale(0.92);
-        }
+        #kakashi:active { transform: scale(0.92); }
+        .kakashi-title { font-size: 1.1rem; font-weight: bold; }
+        .kakashi-sub { font-size: 0.85rem; color: #FFD700; font-weight: bold; margin-top: 4px; }
 
-        .kakashi-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .kakashi-sub {
-            font-size: 0.85rem;
-            color: #FFD700; /* 金色 */
-            font-weight: bold;
-            margin-top: 4px;
-        }
-
-        /* アップグレードエリア */
+        /* 通常アップグレードエリア */
         .upgrade-container {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
             width: 90%;
             max-width: 360px;
+            margin-bottom: 30px;
         }
 
-        /* アップグレードボタンの共通デザイン */
         .btn {
-            padding: 12px;
-            font-size: 0.95rem;
+            padding: 10px;
+            font-size: 0.9rem;
             font-weight: bold;
             color: #323232;
             border: none;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
             -webkit-tap-highlight-color: transparent;
         }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        #btn-auto {
-            background-color: #D2B48C; /* 薄茶色 */
-        }
-
-        #btn-click {
-            background-color: #F4A460; /* 明るい茶色 */
-        }
-
-        /* 購入できないときは少し暗くする */
+        #btn-auto { background-color: #D2B48C; }
+        #btn-click { background-color: #F4A460; }
         .btn:disabled {
             background-color: #999999 !important;
             color: #666666;
             cursor: not-allowed;
-            transform: none;
             box-shadow: none;
         }
 
-        /* ステータス表示（最下部） */
+        /* ★ スキルツリーエリアのデザイン */
+        .skill-tree-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 5px;
+            width: 90%;
+            max-width: 360px;
+        }
+
+        .skill-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 90%;
+            max-width: 360px;
+        }
+
+        /* スキルボタンの個別スタイル */
+        .skill-btn {
+            padding: 12px 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            background-color: #4b6b4b; /* ロック色：暗い緑 */
+            border: 2px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        /* 解放されて購入可能な状態 */
+        .skill-btn.available {
+            background-color: #4682B4; /* 青色 */
+            border-color: #FFF;
+        }
+        /* 購入できないときは少し暗く */
+        .skill-btn.available:disabled {
+            background-color: #2F4F4F;
+            color: #aaaaaa;
+        }
+
+        /* 習得済みの状態 */
+        .skill-btn.learned {
+            background-color: #FF8C00; /* オレンジ（金） */
+            border-color: #FFD700;
+            color: white;
+            cursor: default;
+        }
+
+        .skill-cost { font-size: 0.75rem; color: #FFD700; }
+        .skill-btn.learned .skill-cost { color: #FFF; }
+
+        /* ステータス表示 */
         #status-display {
-            margin-top: 30px;
+            margin-top: 25px;
             font-size: 0.85rem;
             color: #E0E0E0;
             line-height: 1.5;
-            padding: 0 10px;
         }
     </style>
 </head>
@@ -138,6 +166,33 @@
         </button>
     </div>
 
+    <div class="skill-tree-title">特訓スキルツリー</div>
+    <div class="skill-grid">
+        <button idsk="s1" class="skill-btn" onclick="buySkill('s1')">
+            <span>【攻撃】木刀の極意</span>
+            <span>（自身の攻撃力＋５）</span>
+            <span class="skill-cost" id="cost-s1">コスト：50点</span>
+        </button>
+
+        <button idsk="s2" class="skill-btn" onclick="buySkill('s2')">
+            <span>【自動】口笛のコツ</span>
+            <span>（自動攻撃力＋５）</span>
+            <span class="skill-cost" id="cost-s2">コスト：80点</span>
+        </button>
+
+        <button idsk="s3" class="skill-btn" onclick="buySkill('s3')">
+            <span>【前提:木刀】鉄剣錬成</span>
+            <span>（自身の攻撃力＋２０）</span>
+            <span class="skill-cost" id="cost-s3">コスト：300点</span>
+        </button>
+
+        <button idsk="s4" class="skill-btn" onclick="buySkill('s4')">
+            <span>【前提:口笛】熱血指導</span>
+            <span>（自動攻撃力＋３０）</span>
+            <span class="skill-cost" id="cost-s4">コスト：500点</span>
+        </button>
+    </div>
+
     <div id="status-display">
         現在の能力 ｜ 自分の攻撃力：<span id="power-click">1</span>点<br>
         仲間の自動攻撃力：毎秒<span id="power-auto">0</span>点
@@ -146,64 +201,118 @@
     <script>
         // --- ゲームの変数の初期化 ---
         let score = 0;
-        let clickPower = 1;
-        let autoClickRate = 0;
+        let baseClickPower = 1;      // 通常強化によるクリック力
+        let baseAutoClickRate = 0;   // 通常強化による自動攻撃力
 
         let upgradeCost = 10;
         let clickUpgradeCost = 15;
 
-        // --- 画面の表示を更新する関数 ---
-        function updateDisplay() {
-            // スコアは小数点以下を切り捨てて表示
-            document.getElementById("score").innerText = Math.floor(score);
-            
-            // コストと能力の表示更新
-            document.getElementById("cost-auto").innerText = upgradeCost;
-            document.getElementById("cost-click").innerText = clickUpgradeCost;
-            document.getElementById("power-click").innerText = clickPower;
-            document.getElementById("power-auto").innerText = autoClickRate;
+        // ★ スキルツリーのデータ管理
+        const skills = {
+            s1: { name: "木刀の極意", cost: 50,  learned: false, req: null, type: "click", value: 5 },
+            s2: { name: "口笛のコツ", cost: 80,  learned: false, req: null, type: "auto",  value: 5 },
+            s3: { name: "鉄剣錬成",   cost: 300, learned: false, req: "s1", type: "click", value: 20 },
+            s4: { name: "熱血指導",   cost: 500, learned: false, req: "s2", type: "auto",  value: 30 }
+        };
 
-            // ポイントが足りないボタンをグレーアウト（無効化）する
-            document.getElementById("btn-auto").disabled = (score < upgradeCost);
-            document.getElementById("btn-click").disabled = (score < clickUpgradeCost);
+        // ★ 総攻撃力を計算する関数（通常強化 ＋ スキルツリーのボーナス）
+        function getClickPower() {
+            let power = baseClickPower;
+            if (skills.s1.learned) power += skills.s1.value;
+            if (skills.s3.learned) power += skills.s3.value;
+            return power;
         }
 
-        // --- 1. かかしを攻撃（クリック）したとき ---
+        function getAutoClickRate() {
+            let rate = baseAutoClickRate;
+            if (skills.s2.learned) rate += skills.s2.value;
+            if (skills.s4.learned) rate += skills.s4.value;
+            return rate;
+        }
+
+        // --- 画面の表示を更新する関数 ---
+        function updateDisplay() {
+            document.getElementById("score").innerText = Math.floor(score);
+            document.getElementById("cost-auto").innerText = upgradeCost;
+            document.getElementById("cost-click").innerText = clickUpgradeCost;
+            
+            // 総能力の表示更新
+            document.getElementById("power-click").innerText = getClickPower();
+            document.getElementById("power-auto").innerText = getAutoClickRate();
+
+            // 通常ボタンの有効化/無効化
+            document.getElementById("btn-auto").disabled = (score < upgradeCost);
+            document.getElementById("btn-click").disabled = (score < clickUpgradeCost);
+
+            // スキルツリーボタンの状態更新
+            for (let id in skills) {
+                let sk = skills[id];
+                let btn = document.querySelector(`[idsk="${id}"]`);
+                
+                // 1. 前提条件のチェック（ロックかアンロックか）
+                let isUnlocked = (sk.req === null || skills[sk.req].learned);
+
+                if (sk.learned) {
+                    btn.className = "skill-btn learned";
+                    btn.disabled = true;
+                    document.getElementById(`cost-${id}`).innerText = "習得済み";
+                } else if (isUnlocked) {
+                    btn.className = "skill-btn available";
+                    btn.disabled = (score < sk.cost); // ポイントが足りなければ押せない
+                } else {
+                    btn.className = "skill-btn"; // ロック状態
+                    btn.disabled = true;
+                }
+            }
+        }
+
+        // --- かかしを攻撃 ---
         function attackKakashi() {
-            score += clickPower;
+            score += getClickPower();
             updateDisplay();
         }
 
-        // --- 2. 自動攻撃を雇う ---
+        // --- 通常アップグレード ---
         function buyAutoClick() {
             if (score >= upgradeCost) {
                 score -= upgradeCost;
-                autoClickRate += 1;
+                baseAutoClickRate += 1;
                 upgradeCost = Math.floor(upgradeCost * 1.5);
                 updateDisplay();
             }
         }
 
-        // --- 3. 自分の攻撃力を鍛える ---
         function buyClickUpgrade() {
             if (score >= clickUpgradeCost) {
                 score -= clickUpgradeCost;
-                clickPower += 1;
+                baseClickPower += 1;
                 clickUpgradeCost = Math.floor(clickUpgradeCost * 1.7);
                 updateDisplay();
             }
         }
 
-        // --- 仲間の自動攻撃（定期実行ループ） ---
-        // 1000ミリ秒（1秒）に60回実行して、滑らかにポイントを増やします
+        // ★ スキルを購入・習得する関数
+        function buySkill(id) {
+            let sk = skills[id];
+            // 前提条件をクリアしていて、未習得で、ポイントが足りる場合
+            let isUnlocked = (sk.req === null || skills[sk.req].learned);
+            
+            if (isUnlocked && !sk.learned && score >= sk.cost) {
+                score -= sk.cost;
+                sk.learned = true; // 習得状態にする
+                updateDisplay();
+            }
+        }
+
+        // --- 仲間の自動攻撃ループ ---
         setInterval(function() {
-            if (autoClickRate > 0) {
-                score += autoClickRate * (1 / 60);
+            let rate = getAutoClickRate();
+            if (rate > 0) {
+                score += rate * (1 / 60);
                 updateDisplay();
             }
         }, 1000 / 60);
 
-        // 最初の一回、画面表示をリフレッシュ
         updateDisplay();
     </script>
 </body>
