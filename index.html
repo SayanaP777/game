@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>かかし訓練クリッカー - 初心者ボーナス版</title>
+    <title>かかし訓練クリッカー - 野次馬かかし版</title>
     <style>
         body {
             margin: 0;
@@ -63,10 +63,49 @@
             transition: transform 0.05s;
             margin-bottom: 20px;
             -webkit-tap-highlight-color: transparent;
+            position: relative; /* ★吹き出しの基準にするため追加 */
         }
         #kakashi:active { transform: scale(0.92); }
         .kakashi-title { font-size: 1.1rem; font-weight: bold; }
         .kakashi-sub { font-size: 0.85rem; color: #FFD700; font-weight: bold; margin-top: 4px; transition: color 0.1s; }
+
+        /* ★吹き出し（吹き出し）のデザイン追加 */
+        .bubble {
+            display: none; /* 平時は非表示 */
+            position: absolute;
+            bottom: 110%; /* かかしの上に表示 */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            color: #333;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        /* 吹き出しの三角部分 */
+        .bubble:after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+        }
+        /* フェードアウト＆スライドアニメーション */
+        @keyframes fadeOutUp {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-15px); }
+        }
+        .bubble.show {
+            display: block;
+            animation: fadeOutUp 1.2s forwards; /* 1.2秒で消える */
+        }
 
         .section-title {
             font-size: 1.2rem;
@@ -109,7 +148,6 @@
         }
         .btn-sub { font-size: 0.75rem; font-weight: normal; margin-top: 2px; opacity: 0.9; }
 
-        /* 初心者ボーナス中のバッジスタイル */
         .bonus-badge {
             font-size: 0.7rem;
             background-color: #FF1493;
@@ -207,6 +245,7 @@
     </div>
 
     <div id="kakashi" onclick="attackKakashi()">
+        <div id="kakashi-bubble" class="bubble">いてっ</div>
         <div class="kakashi-title">訓練用かかし</div>
         <div id="kakashi-sub" class="kakashi-sub">＼攻撃せよ！／</div>
     </div>
@@ -214,11 +253,11 @@
     <div class="section-title">基礎能力の強化</div>
     <div class="upgrade-container">
         <button id="btn-auto" class="btn" onclick="buyAutoClick()">
-            <span>自動攻撃を雇う [Lv.<span id="lv-auto">0</span>]<span id="badge-auto" class="bonus-badge">新兵割引</span> （コスト：<span id="cost-auto">30</span>）</span>
+            <span>自動攻撃を雇う [Lv.<span id="lv-auto">0</span>]<span id="badge-auto" class="bonus-badge">新兵割引</span> （コスト：<span id="cost-auto">100</span>）</span>
             <span class="btn-sub">次の強化幅：＋<span id="gain-auto">0.5</span>点</span>
         </button>
         <button id="btn-click" class="btn" onclick="buyClickUpgrade()">
-            <span>攻撃力を鍛える [Lv.<span id="lv-click">0</span>]<span id="badge-click" class="bonus-badge">新兵割引</span> （コスト：<span id="cost-click">40</span>）</span>
+            <span>攻撃力を鍛える [Lv.<span id="lv-click">0</span>]<span id="badge-click" class="bonus-badge">新兵割引</span> （コスト：<span id="cost-click">150</span>）</span>
             <span class="btn-sub">次の強化幅：＋<span id="gain-click">1</span>点</span>
         </button>
     </div>
@@ -282,9 +321,8 @@
         let baseClickPower = 1;
         let baseAutoClickRate = 0;
 
-        // ★ 初心者向けに最初のコストを優しくリセット（30点 / 40点）
-        let upgradeCost = 30;
-        let clickUpgradeCost = 40;
+        let upgradeCost = 100;
+        let clickUpgradeCost = 150;
         
         let autoClickGain = 0.5;
         let clickPowerGain = 1;
@@ -293,10 +331,21 @@
         let clickCount = 0;
 
         let critTimeout = null;
+        let bubbleTimeout = null; // ★吹き出し用タイマー管理用
 
         let isMerchantPresent = false;
         let merchantTimeLeft = 0;
         let merchantInterval = null;
+
+        // ★かかしのセリフリスト
+        const kakashiPhrases = [
+            "いてっ", "きくぅー", "まだまだ！", "がんばれー", "もっと強く！", 
+            "やるなぁ", "そこだ！", "うぐっ", "き、きつい…", "あうっ"
+        ];
+        // ★クリティカル時の特別なセリフ
+        const kakashiCritPhrases = [
+            "ぎゃあああ！", "す、すごい！", "ふげぇっ！", "まいりました…", "ちょ、タンマ！"
+        ];
 
         const skills = {
             s1: { name: "木刀の極意", cost: 500,  learned: false, req: null, type: "click", value: 50 },
@@ -335,7 +384,6 @@
             document.getElementById("lv-auto").innerText = autoCount;
             document.getElementById("lv-click").innerText = clickCount;
 
-            // ★ Lv.5未満なら「新兵割引」バッジを表示、Lv.5以上で非表示にする
             document.getElementById("badge-auto").style.display = (autoCount < 5) ? "inline" : "none";
             document.getElementById("badge-click").style.display = (clickCount < 5) ? "inline" : "none";
             
@@ -392,21 +440,45 @@
             }
         }
 
+        // ★かかしを攻撃（野次馬演出追加）
         function attackKakashi() {
             let power = getClickPower();
             let isCritical = Math.random() < 0.05; 
             const subText = document.getElementById("kakashi-sub");
+            const bubble = document.getElementById("kakashi-bubble"); // ★吹き出し要素取得
+
+            let phraseList = kakashiPhrases; // 通常のセリフリスト
 
             if (isCritical) {
                 power *= 3;
                 subText.innerText = "💥クリティカル！💥";
                 subText.style.color = "#FF4500";
+                phraseList = kakashiCritPhrases; // クリティカル用のセリフリストに切り替え
+
                 if (critTimeout) clearTimeout(critTimeout);
                 critTimeout = setTimeout(() => {
                     subText.innerText = "＼攻撃せよ！／";
                     subText.style.color = "#FFD700";
                 }, 400);
             }
+
+            // ★吹き出しを表示する処理追加
+            // ランダムにセリフを選択
+            const randomPhrase = phraseList[Math.floor(Math.random() * phraseList.length)];
+            bubble.innerText = randomPhrase;
+            
+            // クラスを追加して表示＆アニメーション開始（連打対応のため一旦削除して再追加）
+            bubble.classList.remove("show");
+            void bubble.offsetWidth; // 強制再描画
+            bubble.classList.add("show");
+
+            // 前回のタイマーがあればクリア
+            if (bubbleTimeout) clearTimeout(bubbleTimeout);
+            // アニメーション終了（1.2秒後）にクラスを削除して非表示に戻す
+            bubbleTimeout = setTimeout(() => {
+                bubble.classList.remove("show");
+            }, 1200);
+
 
             score += power;
 
@@ -443,14 +515,12 @@
             updateDisplay();
         }
 
-        // --- 通常アップグレード（初心者ボーナス判定付き） ---
         function buyAutoClick() {
             if (score >= upgradeCost) {
                 score -= upgradeCost;
                 baseAutoClickRate += autoClickGain;
                 autoCount++;
                 
-                // ★【新兵割引ロジック】Lv.5未満なら1.2倍固定、Lv.5以降は2.0からの超インフレ
                 let multiplier = 1.2;
                 if (autoCount >= 5) {
                     multiplier = 2.0 + (autoCount * 0.10);
@@ -468,7 +538,6 @@
                 baseClickPower += clickPowerGain;
                 clickCount++;
                 
-                // ★【新兵割引ロジック】Lv.5未満なら1.3倍固定、Lv.5以降は2.5からの超インフレ
                 let multiplier = 1.3;
                 if (clickCount >= 5) {
                     multiplier = 2.5 + (clickCount * 0.20);
