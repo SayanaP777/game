@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>かかし訓練クリッカー - 討伐討伐・HP版</title>
+    <title>かかし訓練クリッカー - 生き生きエネミー版</title>
     <style>
         body {
             margin: 0;
@@ -35,7 +35,6 @@
             font-weight: bold;
         }
 
-        /* ★HPバーのスタイル */
         .hp-container {
             width: 200px;
             background-color: #555;
@@ -97,7 +96,7 @@
             justify-content: center;
             box-shadow: 0 8px 16px rgba(0,0,0,0.3);
             cursor: pointer;
-            transition: transform 0.05s;
+            transition: transform 0.05s, background-color 0.3s;
             margin-bottom: 20px;
             -webkit-tap-highlight-color: transparent;
             position: relative;
@@ -298,7 +297,7 @@
 <body>
 
     <div id="score-display">所持金：<span id="score">0</span>ゴールド</div>
-    <div id="level-display">討伐数：<span id="kakashi-lv">0</span>体</div>
+    <div id="level-display"><span id="enemy-status-text">かかし討伐数：0 / 10体</span> (通算: <span id="kakashi-lv">0</span>体)</div>
 
     <div id="merchant-banner">
         💰 行商人がやってきた！武器1つだけ30%OFF！ 💰<br>
@@ -312,7 +311,7 @@
 
     <div id="kakashi" onclick="attackKakashi()">
         <div id="kakashi-bubble" class="bubble">いてっ</div>
-        <div class="kakashi-title">訓練用かかし</div>
+        <div id="enemy-name" class="kakashi-title">訓練用かかし</div>
         <div id="kakashi-sub" class="kakashi-sub">＼攻撃せよ！／</div>
     </div>
 
@@ -367,7 +366,7 @@
         </button>
         <button idsk="s3" class="skill-btn" onclick="buySkill('s3')">
             <span>【前提:木刀】鉄剣錬成</span>
-            <span>（自身の攻撃力＋３００）</span>
+            <span>（自身の攻撃力＋３０0）</span>
             <span class="skill-cost" id="cost-s3">コスト：3000G</span>
         </button>
         <button idsk="s4" class="skill-btn" onclick="buySkill('s4')">
@@ -388,7 +387,7 @@
     </div>
 
     <script>
-        let score = 0; // 所持金ゴールド
+        let score = 0; 
         let baseClickPower = 1;
         let baseAutoClickRate = 0;
 
@@ -401,23 +400,54 @@
         let autoCount = 0;
         let clickCount = 0;
 
-        // ★かかしのHP管理変数
-        let kakashiDefeated = 0;  // 討伐数
-        let kakashiMaxHp = 10;    // ★最初は弱めの10HP！
+        let kakashiDefeated = 0;  
+
+        // ★各モンスターごとの専用セリフ（通常、クリティカル、討伐、放置）を完全データ化！
+        const enemyDataList = [
+            { 
+                name: "訓練用かかし", hp: 10, reward: 15, color: "#8B4513", nextCount: 10,
+                phrases: ["いてっ", "きくぅー", "まだまだ！", "そこだ！"],
+                critPhrases: ["ぎゃあああ！", "す、すごい！", "ふげぇっ！"],
+                koPhrases: ["バタッ（昇天）", "見事なり…！", "強くなったなぁ"],
+                idlePhrases: ["…喋ってもいい？", "叩いてくれないと寂しいな", "修行の成果を見せてみよ！"]
+            },
+            { 
+                name: "ぷるぷるスライム", hp: 50, reward: 45, color: "#1E90FF", nextCount: 15,
+                phrases: ["ぴきっ", "ぷるんっ", "つめたい？", "ひゃんっ"],
+                critPhrases: ["びよーーーん！", "ちぎれるぅ！", "平べったくなった！"],
+                koPhrases: ["ピキィ！（分裂）", "とけていくぅ…", "水たまりになった"],
+                idlePhrases: ["ぷるぷる…寝ちゃうぞ", "おーい、みずあめじゃないよ", "放置されると乾いちゃう…"]
+            },
+            { 
+                name: "やんちゃゴブリン", hp: 200, reward: 180, color: "#2E8B57", nextCount: 20,
+                phrases: ["痛えな！", "効かねえよ！", "おいおい！", "あぶねっ"],
+                critPhrases: ["ギャフン！", "クソォオオ！", "目がまわるぅ！"],
+                koPhrases: ["おぼえてろよー！", "うわあああ！", "ちくしょー！"],
+                idlePhrases: ["ビビってんのか？", "早くかかってこいよ！", "お前の財布、狙っちゃおうかなー"]
+            },
+            { 
+                name: "見習いドラゴン", hp: 800, reward: 700, color: "#DC143C", nextCount: Infinity,
+                phrases: ["フハハ！", "くすぐったいぞ", "我が皮膚は硬い", "ぬるいな"],
+                critPhrases: ["グオオオ！？", "やるではないか！", "ガハッ…やるな！"],
+                koPhrases: ["見事な一撃だ…", "眠りにつくとしよう", "完敗だ…"],
+                idlePhrases: ["退屈させないでくれ", "人間よ、恐れをなしたか？", "ふぁぁ…（あくびの炎）"]
+            }
+        ];
+        let currentEnemyIdx = 0;       
+        let currentEnemyDefeated = 0;  
+        
+        let kakashiMaxHp = 10;
         let kakashiHp = 10;
 
         let critTimeout = null;
         let bubbleTimeout = null;
         let saveMsgTimeout = null;
+        let idleInterval = null; // ★放置判定用のタイマー
+        let secondsSinceLastTap = 0; // ★最後のタップからの経過秒数
 
         let isMerchantPresent = false;
         let merchantTimeLeft = 0;
         let merchantInterval = null;
-
-        const kakashiPhrases = ["いてっ", "きくぅー", "まだまだ！", "がんばれー", "もっと強く！", "やるなぁ", "そこだ！", "うぐっ", "き、きつい…", "あうっ"];
-        const kakashiCritPhrases = ["ぎゃあああ！", "す、すごい！", "ふげぇっ！", "まいりました…", "ちょ、タンマ！"];
-        // ★討伐時の特殊セリフ
-        const kakashiKOPhrases = ["バタッ（昇天）", "見事なり…！", "新調してくれい！", "強くなったなぁ…"];
 
         const skills = {
             s1: { name: "木刀の極意", cost: 500,  learned: false, req: null, type: "click", value: 50 },
@@ -449,17 +479,26 @@
         }
 
         function updateDisplay() {
+            let currentEnemy = enemyDataList[currentEnemyIdx];
+
             document.getElementById("score").innerText = Math.floor(score);
             document.getElementById("kakashi-lv").innerText = kakashiDefeated;
             
-            // ★HPバーとテキストの更新
+            document.getElementById("enemy-name").innerText = currentEnemy.name;
+            document.getElementById("kakashi").style.backgroundColor = currentEnemy.color;
+            
+            if (currentEnemy.nextCount === Infinity) {
+                document.getElementById("enemy-status-text").innerText = `${currentEnemy.name}出現中！`;
+            } else {
+                document.getElementById("enemy-status-text").innerText = `${currentEnemy.name}討伐数：${currentEnemyDefeated} / ${currentEnemy.nextCount}体`;
+            }
+
             let hpPercent = Math.max(0, (kakashiHp / kakashiMaxHp) * 100);
             document.getElementById("hp-bar").style.width = hpPercent + "%";
             document.getElementById("hp-text").innerText = `HP: ${Math.floor(kakashiHp)} / ${kakashiMaxHp}`;
 
             document.getElementById("cost-auto").innerText = upgradeCost;
             document.getElementById("cost-click").innerText = clickUpgradeCost;
-            
             document.getElementById("lv-auto").innerText = autoCount;
             document.getElementById("lv-click").innerText = clickCount;
 
@@ -470,7 +509,6 @@
             document.getElementById("gain-click").innerText = Math.floor(clickPowerGain);
 
             document.getElementById("power-click").innerText = Math.floor(getClickPower());
-            
             let displayAutoRate = getAutoClickRate();
             document.getElementById("power-auto").innerText = displayAutoRate < 10 ? displayAutoRate.toFixed(1) : Math.floor(displayAutoRate);
 
@@ -509,32 +547,34 @@
             }
         }
 
-        // ★かかしにダメージを与える共通処理
         function damageKakashi(amount) {
             kakashiHp -= amount;
+            let currentEnemy = enemyDataList[currentEnemyIdx];
             
-            // HPが0以下になったら討伐達成！
             if (kakashiHp <= 0) {
                 kakashiDefeated++;
+                currentEnemyDefeated++;
                 
-                // 討伐報酬：最大HPの1.5倍のゴールドを獲得！
-                let reward = Math.floor(kakashiMaxHp * 1.5);
+                let reward = currentEnemy.reward;
                 score += reward;
 
-                // 討伐時のセリフをポップアップ
                 const bubble = document.getElementById("kakashi-bubble");
-                bubble.innerText = kakashiKOPhrases[Math.floor(Math.random() * kakashiKOPhrases.length)] + ` (+${reward}G)`;
+                bubble.innerText = currentEnemy.koPhrases[Math.floor(Math.random() * currentEnemy.koPhrases.length)] + ` (+${reward}G)`;
                 bubble.classList.remove("show");
                 void bubble.offsetWidth;
                 bubble.classList.add("show");
                 if (bubbleTimeout) clearTimeout(bubbleTimeout);
                 bubbleTimeout = setTimeout(() => { bubble.classList.remove("show"); }, 1500);
 
-                // 次のかかしを生成（HPが1.4倍ずつ成長してタフになる仕様）
-                kakashiMaxHp = Math.floor(10 * Math.pow(1.4, kakashiDefeated));
+                if (currentEnemyDefeated >= currentEnemy.nextCount && currentEnemyIdx < enemyDataList.length - 1) {
+                    currentEnemyIdx++;
+                    currentEnemyDefeated = 0;
+                    currentEnemy = enemyDataList[currentEnemyIdx];
+                }
+
+                kakashiMaxHp = currentEnemy.hp;
                 kakashiHp = kakashiMaxHp;
 
-                // 行商人の出現判定（討伐時に確率8%でやってくる！）
                 if (!isMerchantPresent) {
                     let hasUnboughtWeapon = Object.keys(equips).some(id => id !== 'w0' && !equips[id].bought);
                     if (hasUnboughtWeapon && Math.random() < 0.08) {
@@ -545,18 +585,22 @@
         }
 
         function attackKakashi() {
+            // ★タップされたので放置時間をゼロにリセット！
+            secondsSinceLastTap = 0;
+
+            let currentEnemy = enemyDataList[currentEnemyIdx];
             let power = getClickPower();
             let isCritical = Math.random() < 0.05; 
             const subText = document.getElementById("kakashi-sub");
             const bubble = document.getElementById("kakashi-bubble");
 
-            let phraseList = kakashiPhrases;
+            let phraseList = currentEnemy.phrases;
 
             if (isCritical) {
                 power *= 3;
                 subText.innerText = "💥クリティカル！💥";
                 subText.style.color = "#FF4500";
-                phraseList = kakashiCritPhrases;
+                phraseList = currentEnemy.critPhrases;
 
                 if (critTimeout) clearTimeout(critTimeout);
                 critTimeout = setTimeout(() => {
@@ -565,7 +609,6 @@
                 }, 400);
             }
 
-            // まだ生存している場合のみ通常の被ダメージセリフを表示
             if (kakashiHp - power > 0) {
                 const randomPhrase = phraseList[Math.floor(Math.random() * phraseList.length)];
                 bubble.innerText = randomPhrase;
@@ -578,6 +621,32 @@
 
             damageKakashi(power);
             updateDisplay();
+        }
+
+        // ★放置セリフを喋らせる関数
+        function checkIdleTime() {
+            secondsSinceLastTap++;
+            
+            // 10秒間一度もタップされなかったら発動
+            if (secondsSinceLastTap >= 10) {
+                // セリフを言ったらタイマーを0に戻し、また10秒後に喋るようにする
+                secondsSinceLastTap = 0; 
+                
+                let currentEnemy = enemyDataList[currentEnemyIdx];
+                const bubble = document.getElementById("kakashi-bubble");
+                
+                // 生存している場合のみ放置セリフを表示
+                if (kakashiHp > 0) {
+                    const randomIdlePhrase = currentEnemy.idlePhrases[Math.floor(Math.random() * currentEnemy.idlePhrases.length)];
+                    bubble.innerText = "💬 " + randomIdlePhrase;
+                    bubble.classList.remove("show");
+                    void bubble.offsetWidth;
+                    bubble.classList.add("show");
+                    
+                    if (bubbleTimeout) clearTimeout(bubbleTimeout);
+                    bubbleTimeout = setTimeout(() => { bubble.classList.remove("show"); }, 2000); // 放置セリフは2秒間表示
+                }
+            }
         }
 
         function triggerMerchant() {
@@ -597,6 +666,7 @@
         function endMerchant() {
             isMerchantPresent = false;
             clearInterval(merchantInterval);
+            document.getElementById("merchant-banner").style.none = "block"; // 修正箇所含む
             document.getElementById("merchant-banner").style.display = "none";
             updateDisplay();
         }
@@ -606,11 +676,9 @@
                 score -= upgradeCost;
                 baseAutoClickRate += autoClickGain;
                 autoCount++;
-                
                 let multiplier = 1.2;
                 if (autoCount >= 5) { multiplier = 2.0 + (autoCount * 0.10); }
                 upgradeCost = Math.floor(upgradeCost * multiplier);
-                
                 autoClickGain = Math.max(0.5, parseFloat((upgradeCost * 0.03).toFixed(1)));
                 updateDisplay();
                 saveGame();
@@ -622,11 +690,9 @@
                 score -= clickUpgradeCost;
                 baseClickPower += clickPowerGain;
                 clickCount++;
-                
                 let multiplier = 1.3;
                 if (clickCount >= 5) { multiplier = 2.5 + (clickCount * 0.20); }
                 clickUpgradeCost = Math.floor(clickUpgradeCost * multiplier);
-                
                 clickPowerGain = Math.max(1, Math.floor(clickUpgradeCost * 0.05));
                 updateDisplay();
                 saveGame();
@@ -661,8 +727,8 @@
             }
         }
 
-        // セーブ＆ロードシステム（HP情報も追加）
-        const SAVE_KEY = "kakashi_clicker_save_data_v2";
+        // セーブ＆ロードシステム
+        const SAVE_KEY = "kakashi_clicker_save_data_v4";
 
         function saveGame() {
             const saveData = {
@@ -677,6 +743,8 @@
                 clickCount: clickCount,
                 currentWeapon: currentWeapon,
                 kakashiDefeated: kakashiDefeated,
+                currentEnemyIdx: currentEnemyIdx,          
+                currentEnemyDefeated: currentEnemyDefeated,  
                 kakashiMaxHp: kakashiMaxHp,
                 kakashiHp: kakashiHp,
                 skillsLearned: {
@@ -696,7 +764,11 @@
 
         function loadGame() {
             const json = localStorage.getItem(SAVE_KEY);
-            if (!json) return;
+            if (!json) {
+                kakashiMaxHp = enemyDataList[0].hp;
+                kakashiHp = kakashiMaxHp;
+                return;
+            }
 
             try {
                 const saveData = JSON.parse(json);
@@ -711,9 +783,12 @@
                 clickCount = saveData.clickCount || 0;
                 currentWeapon = saveData.currentWeapon || "w0";
                 
-                // HPデータの復元
                 kakashiDefeated = saveData.kakashiDefeated || 0;
-                kakashiMaxHp = saveData.kakashiMaxHp || 10;
+                currentEnemyIdx = saveData.currentEnemyIdx || 0;
+                currentEnemyDefeated = saveData.currentEnemyDefeated || 0;
+
+                let currentEnemy = enemyDataList[currentEnemyIdx];
+                kakashiMaxHp = currentEnemy.hp;
                 kakashiHp = saveData.kakashiHp !== undefined ? saveData.kakashiHp : kakashiMaxHp;
 
                 if (saveData.skillsLearned) {
@@ -732,7 +807,6 @@
             }
         }
 
-        // 毎秒の自動攻撃（HPを削るように変更）
         setInterval(function() {
             let rate = getAutoClickRate();
             if (rate > 0) {
@@ -740,6 +814,9 @@
                 updateDisplay();
             }
         }, 1000 / 60);
+
+        // ★放置判定用の1秒タイマーを始動
+        setInterval(checkIdleTime, 1000);
 
         setInterval(saveGame, 10000);
         loadGame();
