@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>かかし訓練クリッカー - UI刷新版</title>
+    <title>かかし訓練クリッカー - セリフ堪能版</title>
     <style>
         body {
             margin: 0;
-            padding: 10px 0;
-            background-color: #228B22; /* 草原の緑 */
+            padding: 20px 0;
+            background-color: #228B22;
             font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
             color: white;
             display: flex;
@@ -22,313 +22,368 @@
             touch-action: manipulation;
         }
 
-        /* ★全体を包むコンテナ */
-        .game-container {
-            width: 100%;
-            max-width: 960px; /* PCなど横長画面用の最大幅 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* ★上部ヘッダー（所持金・討伐数） */
-        #game-header {
-            width: 90%;
-            margin-bottom: 10px;
-            text-align: center;
-        }
         #score-display {
             font-size: 2rem;
-            margin: 0 0 5px 0;
+            margin-bottom: 5px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         #level-display {
             font-size: 1.1rem;
             color: #FFD700;
-            margin: 0;
+            margin-bottom: 15px;
             font-weight: bold;
         }
+
+        .hp-container {
+            width: 200px;
+            background-color: #555;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            height: 20px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .hp-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #ff3333;
+            transition: width 0.1s ease-out;
+        }
+        .hp-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 0;
+            left: 0;
+            font-size: 0.8rem;
+            line-height: 20px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px #000;
+        }
+
         #merchant-banner {
             display: none;
             background-color: #D2691E;
             border: 2px solid #FFD700;
             color: white;
-            padding: 8px;
-            margin: 10px 0;
+            padding: 10px;
+            margin-bottom: 15px;
             border-radius: 8px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             font-weight: bold;
             font-size: 0.9rem;
             animation: pulse 1.5s infinite alternate;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.02); } }
-
-        /* ★メインコンテンツ（左右分割） */
-        #game-main {
-            width: 95%;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 70px; /* 攻撃ボタン分の余白 */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
         }
-
-        /* ★左側：自機（プレイヤー）セクション */
-        #player-section {
-            width: 48%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-        /* 左側のサブコンテナ（装備、スキル、ステータス） */
-        .player-sub-section {
-            width: 100%;
-            background-color: rgba(0,0,0,0.2);
-            padding: 10px;
-            border-radius: 8px;
-            box-sizing: border-box;
-        }
-
-        /* ★右側：敵（モンスター）セクション */
-        #enemy-section {
-            width: 48%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            position: relative;
-        }
-
-        /* ★中央下：アクション（攻撃ボタン・セーブ）セクション */
-        #action-section {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100px;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            z-index: 100;
-        }
-
-        /* ★攻撃ボタン専用スタイル（赤） */
-        #attack-btn {
-            background-color: #dc143c;
-            color: white;
-            font-size: 1.5rem;
-            padding: 10px 40px;
-            border-radius: 50px;
-            margin-bottom: 5px;
-            border: 2px solid white;
-            box-shadow: 0 4px 10px rgba(220, 20, 60, 0.5);
-            cursor: pointer;
-        }
-        #attack-btn:active { transform: scale(0.95); box-shadow: none; }
-        #attack-btn:disabled { background-color: #888; border-color: #aaa; color: #ccc; cursor: not-allowed; }
-
-        /* --- 既存UIのスタイル調整 --- */
-
-        .hp-container {
-            width: 100%;
-            max-width: 250px;
-            background-color: #555;
-            border: 2px solid #fff;
-            border-radius: 10px;
-            height: 20px;
-            position: relative;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-        .hp-bar { width: 100%; height: 100%; background-color: #ff3333; transition: width 0.1s ease-out; }
-        .hp-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; font-size: 0.8rem; line-height: 20px; font-weight: bold; color: white; text-shadow: 1px 1px 2px #000; }
 
         #kakashi {
-            width: 130px; height: 130px;
+            width: 130px;
+            height: 130px;
+            background-color: #8B4513;
             border-radius: 50%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-            cursor: default; /* 攻撃しなくなったので通常カーソル */
-            transition: background-color 0.3s;
+            cursor: pointer;
+            transition: transform 0.05s, background-color 0.3s;
+            margin-bottom: 20px;
+            -webkit-tap-highlight-color: transparent;
             position: relative;
         }
+        #kakashi:active { transform: scale(0.92); }
         .kakashi-title { font-size: 1.1rem; font-weight: bold; }
         .kakashi-sub { font-size: 0.85rem; color: #FFD700; font-weight: bold; margin-top: 4px; transition: color 0.1s; }
 
         .bubble {
-            display: none; position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-            background-color: white; color: #333; padding: 5px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: bold;
-            white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 10;
+            display: none;
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            color: #333;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 10;
         }
-        .bubble:after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: white transparent transparent transparent; }
-        @keyframes fadeOutUp { 0% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-15px); } }
-        .bubble.show { display: block; }
+        .bubble:after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: white transparent transparent transparent;
+        }
+        /* アニメーションの共通定義（秒数はJS側で上書きします） */
+        @keyframes fadeOutUp {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-15px); }
+        }
+        .bubble.show {
+            display: block;
+        }
 
-        .section-title { font-size: 1.2rem; font-weight: bold; margin: 0 0 10px 0; border-bottom: 2px solid #FFD700; padding-bottom: 3px; width: 100%; }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 3px;
+            width: 90%;
+            max-width: 360px;
+        }
 
-        .upgrade-container { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-        .btn { padding: 10px; font-size: 0.9rem; font-weight: bold; color: #323232; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+        .upgrade-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            max-width: 360px;
+        }
+        .btn {
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #323232;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         #btn-auto { background-color: #D2B48C; }
         #btn-click { background-color: #F4A460; }
-        .btn:disabled { background-color: #999999 !important; color: #666666; cursor: not-allowed; box-shadow: none; }
+        .btn:disabled {
+            background-color: #999999 !important;
+            color: #666666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
         .btn-sub { font-size: 0.75rem; font-weight: normal; margin-top: 2px; opacity: 0.9; }
-        .bonus-badge { font-size: 0.7rem; background-color: #FF1493; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: bold; }
 
-        .skill-grid { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; } /* 横並びレイアウトに合わせて1列に変更 */
-        .skill-btn { padding: 8px; font-size: 0.75rem; font-weight: bold; color: white; background-color: #4b6b4b; border: 2px solid #333; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .bonus-badge {
+            font-size: 0.7rem;
+            background-color: #FF1493;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+
+        .skill-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 90%;
+            max-width: 360px;
+        }
+        .skill-btn {
+            padding: 10px 5px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            background-color: #4b6b4b;
+            border: 2px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
         .skill-btn.available { background-color: #4682B4; border-color: #FFF; }
         .skill-btn.available:disabled { background-color: #2F4F4F; color: #aaaaaa; }
         .skill-btn.learned { background-color: #FF8C00; border-color: #FFD700; cursor: default; }
         .skill-cost { font-size: 0.7rem; color: #FFD700; }
         .skill-btn.learned .skill-cost { color: #FFF; }
 
-        .equip-container { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-        .equip-item { background-color: rgba(0,0,0,0.1); border: 1px solid #fff; border-radius: 8px; padding: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+        .equip-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            max-width: 360px;
+        }
+        .equip-item {
+            background-color: #3a5f3a;
+            border: 1px solid #fff;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
         .equip-info { text-align: left; }
         .equip-name { font-weight: bold; }
-        .equip-effect { font-size: 0.7rem; color: #ccc; }
-        .equip-btn { padding: 5px 10px; font-size: 0.75rem; font-weight: bold; border: none; border-radius: 50px; cursor: pointer; }
+        .equip-effect { font-size: 0.75rem; color: #ccc; }
+        
+        .equip-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+        }
         .eq-buy { background-color: #FFD700; color: #333; }
         .eq-buy:disabled { background-color: #888; color: #555; }
         .eq-sale { background-color: #FF4500; color: white; animation: flash 0.8s infinite alternate; }
         .eq-sale:disabled { background-color: #888; color: #555; animation: none; }
+        
         .eq-ready { background-color: #FFF; color: #333; }
         .eq-now { background-color: #ADFF2F; color: #333; cursor: default; }
 
-        #status-display { font-size: 0.8rem; color: #E0E0E0; text-align: center; }
+        @keyframes flash {
+            0% { box-shadow: 0 0 2px #FFD700; }
+            100% { box-shadow: 0 0 10px #FFD700; }
+        }
 
-        .save-container { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .save-msg { font-size: 0.75rem; color: #FFD700; opacity: 0; transition: opacity 0.3s; }
+        #status-display {
+            margin-top: 25px;
+            font-size: 0.85rem;
+            color: #E0E0E0;
+            line-height: 1.5;
+        }
+
+        .save-container {
+            margin-top: 30px;
+            width: 90%;
+            max-width: 360px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .save-msg {
+            font-size: 0.75rem;
+            color: #FFD700;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
         .save-msg.active { opacity: 1; }
-        .btn-reset { background-color: #8b2525; color: white; border: 1px solid #ff8888; padding: 4px 8px; font-size: 0.7rem; border-radius: 5px; cursor: pointer; }
-
-        /* スマホ用レスポンシブ（縦画面のときは左右を縦並びに戻す） */
-        @media (max-width: 600px) {
-            #game-main { flex-direction: column-reverse; align-items: center; }
-            #player-section, #enemy-section { width: 100%; }
-            .skill-grid { grid-template-columns: 1fr 1fr; } /* スマホならスキルは2列に */
+        .btn-reset {
+            background-color: #8b2525;
+            color: white;
+            border: 1px solid #ff8888;
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <div class="game-container">
-        
-        <div id="game-header">
-            <h1 id="score-display">所持金：<span id="score">0</span>ゴールド</h1>
-            <div id="level-display"><span id="enemy-status-text">かかし討伐数：0 / 10体</span> (通算: <span id="kakashi-lv">0</span>体)</div>
-            
-            <div id="merchant-banner">
-                💰 行商人がやってきた！武器1つだけ30%OFF！ 💰<br>
-                <span style="font-size: 0.8rem; color: #FFD700;">（残り: <span id="merchant-timer">20</span>秒）</span>
+    <div id="score-display">所持金：<span id="score">0</span>ゴールド</div>
+    <div id="level-display"><span id="enemy-status-text">かかし討伐数：0 / 10体</span> (通算: <span id="kakashi-lv">0</span>体)</div>
+
+    <div id="merchant-banner">
+        💰 行商人がやってきた！武器1つだけ30%OFF！ 💰<br>
+        <span style="font-size: 0.8rem; color: #FFD700;">（あとしばらくで帰ってしまう！ 残り: <span id="merchant-timer">20</span>秒）</span>
+    </div>
+
+    <div class="hp-container">
+        <div id="hp-bar" class="hp-bar"></div>
+        <div id="hp-text" class="hp-text">HP: 10 / 10</div>
+    </div>
+
+    <div id="kakashi" onclick="attackKakashi()">
+        <div id="kakashi-bubble" class="bubble">いてっ</div>
+        <div id="enemy-name" class="kakashi-title">訓練用かかし</div>
+        <div id="kakashi-sub" class="kakashi-sub">＼攻撃せよ！／</div>
+    </div>
+
+    <div class="section-title">基礎能力の強化</div>
+    <div class="upgrade-container">
+        <button id="btn-auto" class="btn" onclick="buyAutoClick()">
+            <span>自動攻撃を雇う [Lv.<span id="lv-auto">0</span>]<span id="badge-auto" class="bonus-badge">新兵割引</span> （コスト：<span id="cost-auto">100</span>）</span>
+            <span class="btn-sub">次の強化幅：＋<span id="gain-auto">0.5</span>ダメージ</span>
+        </button>
+        <button id="btn-click" class="btn" onclick="buyClickUpgrade()">
+            <span>攻撃力を鍛える [Lv.<span id="lv-click">0</span>]<span id="badge-click" class="bonus-badge">新兵割引</span> （コスト：<span id="cost-click">150</span>）</span>
+            <span class="btn-sub">次の強化幅：＋<span id="gain-click">1</span>ダメージ</span>
+        </button>
+    </div>
+
+    <div class="section-title">武器の装備</div>
+    <div class="equip-container">
+        <div class="equip-item">
+            <div class="equip-info">
+                <div class="equip-name">ボロい素手</div>
+                <div class="equip-effect">効果：なし</div>
             </div>
+            <button id="eqbtn-w0" class="equip-btn eq-now" onclick="changeEquip('w0')">装備中</button>
         </div>
-
-        <div id="game-main">
-            
-            <div id="player-section">
-                <div class="player-sub-section">
-                    <div id="status-display">
-                        自分の攻撃力：<span id="power-click">1</span>ダメ<br>
-                        仲間の自動攻撃力：毎秒<span id="power-auto">0</span>ダメ
-                    </div>
-                </div>
-
-                <div class="player-sub-section">
-                    <div class="section-title">基礎能力</div>
-                    <div class="upgrade-container">
-                        <button id="btn-auto" class="btn" onclick="buyAutoClick()">
-                            <span>自動攻撃 [Lv.<span id="lv-auto">0</span>]<span id="badge-auto" class="bonus-badge">新兵</span> （<span id="cost-auto">100</span>G）</span>
-                            <span class="btn-sub">＋<span id="gain-auto">0.5</span>ダメ/秒</span>
-                        </button>
-                        <button id="btn-click" class="btn" onclick="buyClickUpgrade()">
-                            <span>攻撃力強化 [Lv.<span id="lv-click">0</span>]<span id="badge-click" class="bonus-badge">新兵</span> （<span id="cost-click">150</span>G）</span>
-                            <span class="btn-sub">＋<span id="gain-click">1</span>ダメージ</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="player-sub-section">
-                    <div class="section-title">武器装備</div>
-                    <div class="equip-container">
-                        <div class="equip-item">
-                            <div class="equip-info">
-                                <div class="equip-name">ボロい素手</div>
-                                <div class="equip-effect">効果：なし</div>
-                            </div>
-                            <button id="eqbtn-w0" class="equip-btn eq-now" onclick="changeEquip('w0')">装備</button>
-                        </div>
-                        <div class="equip-item">
-                            <div class="equip-info">
-                                <div class="equip-name">銅のつるぎ</div>
-                                <div class="equip-effect">＋１５０ダメ</div>
-                            </div>
-                            <button id="eqbtn-w1" class="equip-btn eq-buy" onclick="actionEquip('w1')">購入:1500G</button>
-                        </div>
-                        <div class="equip-item">
-                            <div class="equip-info">
-                                <div class="equip-name">魔導の杖</div>
-                                <div class="equip-effect">＋１０００ダメ</div>
-                            </div>
-                            <button id="eqbtn-w2" class="equip-btn eq-buy" onclick="actionEquip('w2')">購入:10000G</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="player-sub-section">
-                    <div class="section-title">スキル</div>
-                    <div class="skill-grid">
-                        <button idsk="s1" class="skill-btn" onclick="buySkill('s1')">
-                            <span>【攻】木刀の極意</span>
-                            <span>（＋５０）</span>
-                            <span class="skill-cost" id="cost-s1">500G</span>
-                        </button>
-                        <button idsk="s2" class="skill-btn" onclick="buySkill('s2')">
-                            <span>【自】口笛のコツ</span>
-                            <span>（秒＋３５）</span>
-                            <span class="skill-cost" id="cost-s2">700G</span>
-                        </button>
-                        <button idsk="s3" class="skill-btn" onclick="buySkill('s3')">
-                            <span>【攻】鉄剣錬成</span>
-                            <span>（＋３０0）</span>
-                            <span class="skill-cost" id="cost-s3">3000G</span>
-                        </button>
-                        <button idsk="s4" class="skill-btn" onclick="buySkill('s4')">
-                            <span>【自】熱血指導</span>
-                            <span>（秒＋２５０）</span>
-                            <span class="skill-cost" id="cost-s4">5000G</span>
-                        </button>
-                    </div>
-                </div>
+        <div class="equip-item">
+            <div class="equip-info">
+                <div class="equip-name">銅のつるぎ</div>
+                <div class="equip-effect">効果：自身の攻撃力＋１５０ダメージ</div>
             </div>
-
-            <div id="enemy-section">
-                <div class="hp-container">
-                    <div id="hp-bar" class="hp-bar"></div>
-                    <div id="hp-text" class="hp-text">HP: 10 / 10</div>
-                </div>
-                
-                <div id="kakashi">
-                    <div id="kakashi-bubble" class="bubble">いてっ</div>
-                    <div id="enemy-name" class="kakashi-title">訓練用かかし</div>
-                    <div id="kakashi-sub" class="kakashi-sub">＼攻撃！／</div>
-                </div>
-            </div>
+            <button id="eqbtn-w1" class="equip-btn eq-buy" onclick="actionEquip('w1')">購入:1500G</button>
         </div>
-
-        <div id="action-section">
-            <button id="attack-btn" onclick="attackKakashi()">攻撃開始！</button>
-            <div class="save-container">
-                <span id="save-status" class="save-msg">🔄 オートセーブ完了</span>
-                <button class="btn-reset" onclick="resetGame()">最初から</button>
+        <div class="equip-item">
+            <div class="equip-info">
+                <div class="equip-name">魔導の杖</div>
+                <div class="equip-effect">効果：自身の攻撃力＋１０00ダメージ</div>
             </div>
+            <button id="eqbtn-w2" class="equip-btn eq-buy" onclick="actionEquip('w2')">購入:10000G</button>
         </div>
+    </div>
 
+    <div class="section-title">特訓スキルツリー</div>
+    <div class="skill-grid">
+        <button idsk="s1" class="skill-btn" onclick="buySkill('s1')">
+            <span>【攻撃】木刀の極意</span>
+            <span>（自身の攻撃力＋５０）</span>
+            <span class="skill-cost" id="cost-s1">コスト：500G</span>
+        </button>
+        <button idsk="s2" class="skill-btn" onclick="buySkill('s2')">
+            <span>【自動】口笛のコツ</span>
+            <span>（自動攻撃力＋３５）</span>
+            <span class="skill-cost" id="cost-s2">コスト：700G</span>
+        </button>
+        <button idsk="s3" class="skill-btn" onclick="buySkill('s3')">
+            <span>【前提:木刀】鉄剣錬成</span>
+            <span>（自身の攻撃力＋３０0）</span>
+            <span class="skill-cost" id="cost-s3">コスト：3000G</span>
+        </button>
+        <button idsk="s4" class="skill-btn" onclick="buySkill('s4')">
+            <span>【前提:口笛】熱血指導</span>
+            <span>（自動攻撃力＋２５０）</span>
+            <span class="skill-cost" id="cost-s4">コスト：5000G</span>
+        </button>
+    </div>
+
+    <div id="status-display">
+        現在の能力 ｜ 自分の攻撃力：<span id="power-click">1</span>ダメージ<br>
+        仲間の自動攻撃力：毎秒<span id="power-auto">0</span>ダメージ
+    </div>
+
+    <div class="save-container">
+        <span id="save-status" class="save-msg">🔄 オートセーブ完了</span>
+        <button class="btn-reset" onclick="resetGame()">データを削除して最初から</button>
     </div>
 
     <script>
@@ -386,7 +441,6 @@
         let critTimeout = null;
         let bubbleTimeout = null;
         let saveMsgTimeout = null;
-        let idleInterval = null; 
         let secondsSinceLastTap = 0; 
 
         let isMerchantPresent = false;
@@ -422,11 +476,10 @@
             return rate;
         }
 
-        // --- 全表示の更新を行う関数 ---
         function updateDisplay() {
             let currentEnemy = enemyDataList[currentEnemyIdx];
 
-            document.getElementById("score").innerText = Math.floor(score).toLocaleString(); // 千の位にカンマ
+            document.getElementById("score").innerText = Math.floor(score);
             document.getElementById("kakashi-lv").innerText = kakashiDefeated;
             
             document.getElementById("enemy-name").innerText = currentEnemy.name;
@@ -435,16 +488,15 @@
             if (currentEnemy.nextCount === Infinity) {
                 document.getElementById("enemy-status-text").innerText = `${currentEnemy.name}出現中！`;
             } else {
-                document.getElementById("enemy-status-text").innerText = `${currentEnemy.name}討伐：${currentEnemyDefeated} / ${currentEnemy.nextCount}`;
+                document.getElementById("enemy-status-text").innerText = `${currentEnemy.name}討伐数：${currentEnemyDefeated} / ${currentEnemy.nextCount}体`;
             }
 
             let hpPercent = Math.max(0, (kakashiHp / kakashiMaxHp) * 100);
             document.getElementById("hp-bar").style.width = hpPercent + "%";
             document.getElementById("hp-text").innerText = `HP: ${Math.floor(kakashiHp)} / ${kakashiMaxHp}`;
 
-            // ステータス表示（PCレイアウトに合わせて千の位にカンマ、文字を短く）
-            document.getElementById("cost-auto").innerText = Math.floor(upgradeCost).toLocaleString();
-            document.getElementById("cost-click").innerText = Math.floor(clickUpgradeCost).toLocaleString();
+            document.getElementById("cost-auto").innerText = upgradeCost;
+            document.getElementById("cost-click").innerText = clickUpgradeCost;
             document.getElementById("lv-auto").innerText = autoCount;
             document.getElementById("lv-click").innerText = clickCount;
 
@@ -454,7 +506,7 @@
             document.getElementById("gain-auto").innerText = autoClickGain < 10 ? autoClickGain.toFixed(1) : Math.floor(autoClickGain);
             document.getElementById("gain-click").innerText = Math.floor(clickPowerGain);
 
-            document.getElementById("power-click").innerText = Math.floor(getClickPower()).toLocaleString();
+            document.getElementById("power-click").innerText = Math.floor(getClickPower());
             let displayAutoRate = getAutoClickRate();
             document.getElementById("power-auto").innerText = displayAutoRate < 10 ? displayAutoRate.toFixed(1) : Math.floor(displayAutoRate);
 
@@ -467,10 +519,9 @@
                 let isUnlocked = (sk.req === null || skills[sk.req].learned);
                 if (sk.learned) {
                     btn.className = "skill-btn learned"; btn.disabled = true;
-                    btn.querySelector(`.skill-cost`).innerText = "習得済";
+                    document.getElementById(`cost-${id}`).innerText = "習得済み";
                 } else if (isUnlocked) {
                     btn.className = "skill-btn available"; btn.disabled = (score < sk.cost);
-                    btn.querySelector(`.skill-cost`).innerText = `${sk.cost.toLocaleString()}G`;
                 } else {
                     btn.className = "skill-btn"; btn.disabled = true;
                 }
@@ -483,18 +534,17 @@
                 let currentCost = isSaleTarget ? Math.floor(eq.cost * 0.7) : eq.cost;
 
                 if (currentWeapon === id) {
-                    btn.className = "equip-btn eq-now"; btn.innerText = "装備"; btn.disabled = true;
+                    btn.className = "equip-btn eq-now"; btn.innerText = "装備中"; btn.disabled = true;
                 } else if (eq.bought) {
-                    btn.className = "equip-btn eq-ready"; btn.innerText = "装備"; btn.disabled = false;
+                    btn.className = "equip-btn eq-ready"; btn.innerText = "装備する"; btn.disabled = false;
                 } else {
-                    btn.innerText = currentCost.toLocaleString() + "G"; // 価格だけ表示（商人時はCSSで変化）
+                    btn.innerText = (isMerchantPresent ? "特売:" : "購入:") + currentCost + "G";
                     btn.className = isMerchantPresent ? "equip-btn eq-sale" : "equip-btn eq-buy";
                     btn.disabled = (score < currentCost);
                 }
             }
         }
 
-        // --- ダメージを与える処理 ---
         function damageKakashi(amount) {
             kakashiHp -= amount;
             let currentEnemy = enemyDataList[currentEnemyIdx];
@@ -509,7 +559,7 @@
                 const bubble = document.getElementById("kakashi-bubble");
                 bubble.innerText = currentEnemy.koPhrases[Math.floor(Math.random() * currentEnemy.koPhrases.length)] + ` (+${reward}G)`;
                 
-                // KOセリフはじはじ消える【3秒】表示、じわじわ消える速度も同期
+                // ★KOセリフは長めの【3秒】表示に！じわじわ消える速度も同期
                 bubble.style.animation = "fadeOutUp 3s forwards";
                 bubble.classList.remove("show");
                 void bubble.offsetWidth;
@@ -518,18 +568,15 @@
                 if (bubbleTimeout) clearTimeout(bubbleTimeout);
                 bubbleTimeout = setTimeout(() => { bubble.classList.remove("show"); }, 3000);
 
-                // モンスター切り替え
                 if (currentEnemyDefeated >= currentEnemy.nextCount && currentEnemyIdx < enemyDataList.length - 1) {
                     currentEnemyIdx++;
                     currentEnemyDefeated = 0;
                     currentEnemy = enemyDataList[currentEnemyIdx];
                 }
 
-                // 新しい敵のHPをセット
                 kakashiMaxHp = currentEnemy.hp;
                 kakashiHp = kakashiMaxHp;
 
-                // 行商人の出現判定（討伐時に確率8%）
                 if (!isMerchantPresent) {
                     let hasUnboughtWeapon = Object.keys(equips).some(id => id !== 'w0' && !equips[id].bought);
                     if (hasUnboughtWeapon && Math.random() < 0.08) {
@@ -539,9 +586,8 @@
             }
         }
 
-        // --- ★攻撃ボタンによる攻撃処理（ enemy クリックから移動） ---
         function attackKakashi() {
-            secondsSinceLastTap = 0; // 放置リセット
+            secondsSinceLastTap = 0;
 
             let currentEnemy = enemyDataList[currentEnemyIdx];
             let power = getClickPower();
@@ -559,7 +605,7 @@
 
                 if (critTimeout) clearTimeout(critTimeout);
                 critTimeout = setTimeout(() => {
-                    subText.innerText = "＼攻撃！／";
+                    subText.innerText = "＼攻撃せよ！／";
                     subText.style.color = "#FFD700";
                 }, 400);
             }
@@ -568,7 +614,7 @@
                 const randomPhrase = phraseList[Math.floor(Math.random() * phraseList.length)];
                 bubble.innerText = randomPhrase;
                 
-                // 通常セリフは少しゆったりの【2秒】表示
+                // ★通常セリフは少しゆったりの【2秒】表示に変更
                 bubble.style.animation = "fadeOutUp 2s forwards";
                 bubble.classList.remove("show");
                 void bubble.offsetWidth;
@@ -582,7 +628,6 @@
             updateDisplay();
         }
 
-        // --- 放置ボイス機能 ---
         function checkIdleTime() {
             secondsSinceLastTap++;
             
@@ -596,7 +641,7 @@
                     const randomIdlePhrase = currentEnemy.idlePhrases[Math.floor(Math.random() * currentEnemy.idlePhrases.length)];
                     bubble.innerText = "💬 " + randomIdlePhrase;
                     
-                    // 放置セリフは一番長い【3.5秒】表示に！見逃しを防ぎます
+                    // ★放置セリフは一番長い【3.5秒】表示に！見逃しを防ぎます
                     bubble.style.animation = "fadeOutUp 3.5s forwards";
                     bubble.classList.remove("show");
                     void bubble.offsetWidth;
@@ -608,7 +653,6 @@
             }
         }
 
-        // --- 行商人イベント ---
         function triggerMerchant() {
             isMerchantPresent = true;
             merchantTimeLeft = 20;
@@ -630,7 +674,6 @@
             updateDisplay();
         }
 
-        // --- 通常アップグレード購入 ---
         function buyAutoClick() {
             if (score >= upgradeCost) {
                 score -= upgradeCost;
@@ -659,7 +702,6 @@
             }
         }
 
-        // --- 装備のアクション（購入・装備） ---
         function actionEquip(id) {
             let eq = equips[id];
             let isSaleTarget = (isMerchantPresent && !eq.bought && eq.cost > 0);
@@ -679,7 +721,6 @@
         }
         function changeEquip(id) { currentWeapon = id; updateDisplay(); saveGame(); }
 
-        // --- スキル習得 ---
         function buySkill(id) {
             let sk = skills[id];
             let isUnlocked = (sk.req === null || skills[sk.req].learned);
@@ -689,9 +730,7 @@
             }
         }
 
-        // ==========================================
-        // セーブ＆ロードシステム（進化データ対応）
-        // ==========================================
+        // セーブ＆ロードシステム
         const SAVE_KEY = "kakashi_clicker_save_data_v4";
 
         function saveGame() {
@@ -771,7 +810,6 @@
             }
         }
 
-        // 毎秒の自動攻撃ループ
         setInterval(function() {
             let rate = getAutoClickRate();
             if (rate > 0) {
@@ -780,13 +818,9 @@
             }
         }, 1000 / 60);
 
-        // 放置判定用の1秒タイマー
         setInterval(checkIdleTime, 1000);
 
-        // オートセーブタイマー（10秒）
         setInterval(saveGame, 10000);
-
-        // 起動時のロード
         loadGame();
         updateDisplay();
     </script>
